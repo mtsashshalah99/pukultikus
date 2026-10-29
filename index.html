@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pukul Tikus Tanah - Game Edukasi Latihan Mouse SD</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Google: Fredoka -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka', cursive, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            background: #2b5c0f;
+            cursor: none; /* Custom Hammer Cursor */
+        }
+
+        /* Responsive 16:9 Aspect Ratio Container for Monitor Chrome Screens */
+        .game-viewport {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+
+        .game-card {
+            aspect-ratio: 16 / 9;
+            width: 100%;
+            max-height: 94vh;
+            max-width: calc(94vh * (16 / 9));
+            position: relative;
+        }
+
+        /* Custom Hammer Cursor */
+        #custom-cursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-20%, -20%) rotate(-10deg);
+            transition: transform 0.04s ease-out;
+            transform-origin: bottom left;
+        }
+
+        #custom-cursor.hitting {
+            transform: translate(-20%, 0%) rotate(-60deg);
+        }
+
+        /* Lubang Tikus Styling */
+        .hole {
+            position: relative;
+            overflow: hidden;
+            border-bottom: 6px solid #3d2309;
+            background: radial-gradient(circle, #4a280d 0%, #291404 100%);
+            box-shadow: inset 0 8px 12px rgba(0,0,0,0.7);
+        }
+
+        .hole-rim {
+            position: absolute;
+            bottom: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 106%;
+            height: 24%;
+            background: #7a4a21;
+            border-radius: 50%;
+            border: 3px solid #361f09;
+            z-index: 20;
+        }
+
+        /* Karakter Styling */
+        .mole {
+            position: absolute;
+            left: 50%;
+            bottom: -110%;
+            transform: translateX(-50%);
+            transition: bottom 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.25);
+            z-index: 10;
+            width: 78%;
+            height: 85%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: none;
+        }
+
+        .mole.up {
+            bottom: 8%;
+        }
+
+        /* Animations */
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translate(-50%, 0) scale(0.8); }
+            50% { opacity: 1; transform: translate(-50%, -25px) scale(1.15); }
+            100% { opacity: 0; transform: translate(-50%, -50px) scale(1); }
+        }
+
+        .floating-text {
+            position: absolute;
+            animation: floatUp 0.75s ease-out forwards;
+            font-weight: 700;
+            text-shadow: 2px 2px 0 #000;
+            pointer-events: none;
+            z-index: 35;
+        }
+
+        @keyframes starPop {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            100% { transform: scale(1.4) rotate(180deg); opacity: 0; }
+        }
+        .star-effect {
+            position: absolute;
+            animation: starPop 0.35s ease-out forwards;
+            pointer-events: none;
+            z-index: 30;
+        }
+
+        .btn-bounce {
+            transition: all 0.15s ease;
+        }
+        .btn-bounce:hover {
+            transform: scale(1.04);
+        }
+        .btn-bounce:active {
+            transform: scale(0.96);
+        }
+
+        /* Cloud Background Animation */
+        @keyframes floatClouds {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .clouds-track {
+            display: flex;
+            width: 200%;
+            animation: floatClouds 35s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-800 flex items-center justify-center min-h-screen">
+
+    <!-- Custom Cursor Palu -->
+    <div id="custom-cursor" class="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center drop-shadow-2xl">
+        <svg viewBox="0 0 100 100" class="w-full h-full">
+            <rect x="42" y="40" width="16" height="55" rx="5" fill="#8B4513" stroke="#4A2506" stroke-width="3"/>
+            <rect x="45" y="65" width="10" height="25" rx="2" fill="#D2B48C"/>
+            <rect x="15" y="15" width="70" height="30" rx="6" fill="#718096" stroke="#1A202C" stroke-width="4"/>
+            <rect x="10" y="20" width="80" height="20" rx="4" fill="#CBD5E0"/>
+            <rect x="15" y="15" width="12" height="30" rx="3" fill="#4A5568"/>
+            <rect x="73" y="15" width="12" height="30" rx="3" fill="#4A5568"/>
+            <line x1="25" y1="20" x2="75" y2="20" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+        </svg>
+    </div>
+
+    <!-- MAIN VIEWPORT CONTAINER (16:9 MONITOR ASPECT RATIO) -->
+    <div class="game-viewport">
+        <div class="game-card bg-sky-300 rounded-3xl border-8 border-yellow-400 shadow-2xl overflow-hidden flex flex-col justify-between relative">
+            
+            <!-- Dynamic Background (Sky & Clouds) -->
+            <div class="absolute inset-0 pointer-events-none overflow-hidden z-0">
+                <div class="clouds-track opacity-60">
+                    <div class="w-1/2 flex justify-around items-center pt-2">
+                        <span class="text-4xl">☁️</span><span class="text-6xl">☁️</span><span class="text-3xl">☁️</span><span class="text-5xl">☁️</span>
+                    </div>
+                    <div class="w-1/2 flex justify-around items-center pt-2">
+                        <span class="text-4xl">☁️</span><span class="text-6xl">☁️</span><span class="text-3xl">☁️</span><span class="text-5xl">☁️</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HEADER / HUD BANNER -->
+            <header class="relative z-20 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 px-4 py-2 border-b-4 border-amber-600 flex justify-between items-center shadow-md">
+                
+                <!-- Score -->
+                <div class="flex items-center bg-white/90 px-3 py-1 rounded-2xl border-2 border-amber-600 shadow-inner">
+                    <span class="text-2xl mr-2">⭐</span>
+                    <div>
+                        <div class="text-[10px] text-amber-800 font-extrabold leading-none">SKOR</div>
+                        <div id="score-display" class="text-xl sm:text-2xl font-black text-amber-600 leading-none">0</div>
+                    </div>
+                </div>
+
+                <!-- Level & Target Info -->
+                <div class="flex items-center gap-2">
+                    <div class="bg-amber-600 text-white px-3 py-1 rounded-2xl border-2 border-amber-800 text-center shadow">
+                        <div class="text-[10px] font-bold text-amber-200 uppercase leading-none">LEVEL</div>
+                        <div id="level-display" class="text-lg sm:text-xl font-black leading-none">1</div>
+                    </div>
+                    <div class="bg-white/90 px-3 py-1 rounded-2xl border-2 border-amber-600 text-center shadow-inner">
+                        <div class="text-[10px] text-amber-800 font-extrabold leading-none">TARGET</div>
+                        <div id="target-display" class="text-lg sm:text-xl font-black text-emerald-600 leading-none">100</div>
+                    </div>
+                </div>
+
+                <!-- Timer & Controls -->
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center bg-white/90 px-3 py-1 rounded-2xl border-2 border-amber-600 shadow-inner">
+                        <span class="text-2xl mr-2">⏳</span>
+                        <div>
+                            <div class="text-[10px] text-amber-800 font-extrabold leading-none">WAKTU</div>
+                            <div id="time-display" class="text-xl sm:text-2xl font-black text-red-500 leading-none">30</div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Music Toggle Button -->
+                    <button id="btn-music" onclick="toggleMusic()" class="bg-white/90 hover:bg-white text-amber-900 border-2 border-amber-600 p-2 rounded-xl font-bold shadow text-lg leading-none active:scale-95 transition">
+                        🔊
+                    </button>
+
+                    <!-- Pause Button -->
+                    <button id="btn-pause" onclick="togglePause()" class="hidden bg-amber-500 hover:bg-amber-600 text-white border-2 border-amber-700 p-2 rounded-xl font-bold shadow text-lg leading-none active:scale-95 transition">
+                        ⏸️
+                    </button>
+                </div>
+            </header>
+
+            <!-- MAIN GAME BOARD (GRASS FIELD & HOLES) -->
+            <main class="relative z-10 flex-1 p-2 sm:p-4 flex flex-col items-center justify-center bg-gradient-to-b from-emerald-400 via-green-500 to-green-600">
+                
+                <!-- Guide Bar atas -->
+                <div class="w-full max-w-xl flex justify-around items-center text-xs sm:text-sm font-bold bg-white/85 backdrop-blur-sm px-3 py-1 rounded-full border border-green-700 shadow-sm mb-2 text-green-900">
+                    <span class="flex items-center gap-1">🐭 <b>Biasa:</b> +10</span>
+                    <span class="flex items-center gap-1">👑 <b>Emas:</b> +25</span>
+                    <span class="flex items-center gap-1">🪖 <b>Helm:</b> +20 (2x Klik)</span>
+                    <span class="flex items-center gap-1">🐰 <b>Kelinci:</b> -15</span>
+                </div>
+
+                <!-- Grid 3x3 Lubang -->
+                <div id="holes-grid" class="grid grid-cols-3 gap-3 sm:gap-5 w-full max-w-xl h-full max-h-[72%] my-auto items-center">
+                    <!-- Dynamic Hole Elements -->
+                </div>
+            </main>
+
+            <!-- FOOTER STATUS BAR -->
+            <footer class="relative z-20 bg-emerald-900 text-emerald-100 px-4 py-1.5 flex justify-between items-center text-xs font-semibold border-t-4 border-emerald-950">
+                <div class="flex items-center gap-2">
+                    <span>AKURASI KLIK:</span>
+                    <span id="accuracy-display" class="text-yellow-300 font-extrabold text-sm">100%</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span>STATUS:</span>
+                    <span id="mouse-status" class="text-emerald-300 font-bold">Siap Bermain</span>
+                </div>
+            </footer>
+
+            <!-- MODAL: START / MAIN MENU -->
+            <div id="modal-start" class="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-3xl border-8 border-yellow-400 p-6 max-w-md w-full text-center shadow-2xl relative">
+                    <div class="text-5xl mb-2 animate-bounce">🔨🐭</div>
+                    <h1 class="text-3xl font-black text-amber-600 mb-1 tracking-wide">PUKUL TIKUS TANAH</h1>
+                    <p class="text-xs text-gray-500 mb-4 font-semibold">Latihan Akselerasi & Presisi Mouse Anak SD</p>
+
+                    <div class="bg-amber-50 rounded-2xl p-3 text-left border-2 border-amber-200 mb-5 space-y-1.5 text-xs">
+                        <div class="font-bold text-amber-800 text-center mb-1 text-sm">🎯 Petunjuk Bermain:</div>
+                        <div class="flex items-center gap-2"><span>🐭</span> <span>Arahkan kursor dan <b>Klik Kiri</b> pada tikus!</span></div>
+                        <div class="flex items-center gap-2"><span>👑</span> <span>Pukul <b>Tikus Emas</b> untuk poin ekstra +25!</span></div>
+                        <div class="flex items-center gap-2"><span>🪖</span> <span><b>Tikus Helm</b> butuh 2 kali pukulan cepat!</span></div>
+                        <div class="flex items-center gap-2"><span>🐰</span> <span><b>Jangan pukul Kelinci!</b> Nilaimu berkurang -15.</span></div>
+                    </div>
+
+                    <button onclick="startGame()" class="btn-bounce w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-black text-xl py-3 rounded-2xl shadow-lg border-b-4 border-green-800">
+                        MULAI BERMAIN! 🚀
+                    </button>
+                </div>
+            </div>
+
+            <!-- MODAL: HASIL LEVEL / GAME OVER -->
+            <div id="modal-result" class="hidden absolute inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-3xl border-8 border-amber-400 p-6 max-w-md w-full text-center shadow-2xl">
+                    <div id="result-emoji" class="text-5xl mb-1">🎉</div>
+                    <h2 id="result-title" class="text-2xl font-black text-amber-600 mb-1">HEBAT SEKALI!</h2>
+                    <p id="result-subtitle" class="text-xs text-gray-500 mb-3">Kamu berhasil menyelesaikan level!</p>
+
+                    <div class="bg-yellow-50 rounded-2xl p-3 border-2 border-yellow-200 mb-4 space-y-1.5 text-xs">
+                        <div class="flex justify-between items-center border-b border-yellow-200 pb-1">
+                            <span class="text-gray-600 font-bold">Skor Perolehan:</span>
+                            <span id="res-score" class="text-xl font-black text-amber-600">0</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-yellow-200 pb-1">
+                            <span class="text-gray-600 font-bold">Level Dicapai:</span>
+                            <span id="res-level" class="text-sm font-bold text-gray-800">1</span>
+                        </div>
+                        <div class="flex justify-between items-center border-b border-yellow-200 pb-1">
+                            <span class="text-gray-600 font-bold">Akurasi Klik:</span>
+                            <span id="res-accuracy" class="text-sm font-bold text-emerald-600">0%</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600 font-bold">Tikus Tertangkap:</span>
+                            <span id="res-hits" class="text-sm font-bold text-blue-600">0</span>
+                        </div>
+                    </div>
+
+                    <div id="educational-feedback" class="bg-blue-50 text-blue-800 text-xs font-bold p-2.5 rounded-xl mb-4 border border-blue-200">
+                        Pujian Edukasi
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button id="btn-next-level" onclick="nextLevel()" class="btn-bounce flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 px-3 rounded-xl shadow border-b-4 border-green-700 text-sm">
+                            LEVEL NEXT ⏩
+                        </button>
+                        <button onclick="restartGame()" class="btn-bounce flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-3 rounded-xl shadow border-b-4 border-amber-700 text-sm">
+                            ULANGI 🔄
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL: PAUSE -->
+            <div id="modal-pause" class="hidden absolute inset-0 bg-black/60 backdrop-blur-xs z-40 flex items-center justify-center p-4">
+                <div class="bg-white rounded-2xl p-5 text-center shadow-xl border-4 border-yellow-400 max-w-xs w-full">
+                    <h3 class="text-2xl font-black text-amber-600 mb-4">GAME DIPAUS</h3>
+                    <button onclick="togglePause()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2.5 rounded-xl shadow border-b-4 border-green-700 mb-2 text-sm">
+                        LANJUTKAN ▶️
+                    </button>
+                    <button onclick="resetToMenu()" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 rounded-xl shadow border-b-4 border-red-700 text-xs">
+                        KE MENU UTAMA 🏠
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- WEB AUDIO SYNTHESIZER & MUSIC ENGINE -->
+    <script>
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.bgmTimer = null;
+                this.isMusicOn = true;
+                this.noteIndex = 0;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            // Play Synth Tone Helper
+            playTone(freq, type = 'sine', duration = 0.1, vol = 0.15) {
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e){}
+            }
+
+            // Sound Effects
+            playPop() {
+                if (!this.ctx) return;
+                this.playTone(400, 'sine', 0.08, 0.1);
+            }
+
+            playHit() {
+                if (!this.ctx) return;
+                this.playTone(180, 'triangle', 0.08, 0.25);
+                setTimeout(() => this.playTone(800, 'sine', 0.05, 0.1), 30);
+            }
+
+            playHelmetCrack() {
+                if (!this.ctx) return;
+                this.playTone(250, 'sawtooth', 0.06, 0.2);
+            }
+
+            playBonus() {
+                if (!this.ctx) return;
+                const notes = [523, 659, 783, 1046];
+                notes.forEach((f, i) => {
+                    setTimeout(() => this.playTone(f, 'sine', 0.12, 0.15), i * 50);
+                });
+            }
+
+            playPenalty() {
+                if (!this.ctx) return;
+                this.playTone(220, 'sawtooth', 0.25, 0.2);
+            }
+
+            playMiss() {
+                if (!this.ctx) return;
+                this.playTone(150, 'sine', 0.05, 0.05);
+            }
+
+            playLevelUp() {
+                if (!this.ctx) return;
+                const melody = [440, 554, 659, 880];
+                melody.forEach((f, i) => {
+                    setTimeout(() => this.playTone(f, 'triangle', 0.15, 0.2), i * 80);
+                });
+            }
+
+            // Loop BGM Ceria
+            startBGM() {
+                if (!this.isMusicOn || this.bgmTimer) return;
+                const bgmNotes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63]; // C E G C G E
+                this.bgmTimer = setInterval(() => {
+                    if (this.isMusicOn && this.ctx && state.isPlaying && !state.isPaused) {
+                        const freq = bgmNotes[this.noteIndex % bgmNotes.length];
+                        this.playTone(freq, 'sine', 0.18, 0.03);
+                        this.noteIndex++;
+                    }
+                }, 250);
+            }
+
+            stopBGM() {
+                if (this.bgmTimer) {
+                    clearInterval(this.bgmTimer);
+                    this.bgmTimer = null;
+                }
+            }
+        }
+
+        const sound = new SoundEngine();
+    </script>
+
+    <!-- LOGIKA GAME UTAMA -->
+    <script>
+        const state = {
+            score: 0,
+            level: 1,
+            targetScore: 100,
+            timeLeft: 30,
+            totalClicks: 0,
+            successfulHits: 0,
+            isPlaying: false,
+            isPaused: false,
+            timerInterval: null,
+            moleTimeout: null,
+            lastHole: null,
+            upTime: 1200,
+            popInterval: 1000
+        };
+
+        const CHARACTER_TYPES = {
+            NORMAL: 'NORMAL',
+            GOLDEN: 'GOLDEN',
+            HELMET: 'HELMET',
+            RABBIT: 'RABBIT'
+        };
+
+        // DOM References
+        const cursorEl = document.getElementById('custom-cursor');
+        const holesGrid = document.getElementById('holes-grid');
+        const scoreDisplay = document.getElementById('score-display');
+        const levelDisplay = document.getElementById('level-display');
+        const targetDisplay = document.getElementById('target-display');
+        const timeDisplay = document.getElementById('time-display');
+        const accuracyDisplay = document.getElementById('accuracy-display');
+        const mouseStatusEl = document.getElementById('mouse-status');
+        const btnMusic = document.getElementById('btn-music');
+
+        // Buat 9 Lubang secara Dinamis
+        function createHoles() {
+            holesGrid.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const holeDiv = document.createElement('div');
+                holeDiv.className = 'hole h-full rounded-2xl sm:rounded-3xl relative flex justify-center items-end';
+                holeDiv.dataset.index = i;
+
+                const rimDiv = document.createElement('div');
+                rimDiv.className = 'hole-rim';
+                holeDiv.appendChild(rimDiv);
+
+                const moleDiv = document.createElement('div');
+                moleDiv.className = 'mole';
+                moleDiv.dataset.index = i;
+                holeDiv.appendChild(moleDiv);
+
+                holesGrid.appendChild(holeDiv);
+            }
+        }
+
+        // Custom Cursor Controls
+        document.addEventListener('mousemove', (e) => {
+            cursorEl.style.left = `${e.clientX}px`;
+            cursorEl.style.top = `${e.clientY}px`;
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            sound.init();
+            cursorEl.classList.add('hitting');
+            
+            if (state.isPlaying && !state.isPaused) {
+                state.totalClicks++;
+                if (!e.target.closest('.mole')) {
+                    sound.playMiss();
+                    showFloatingText(e.clientX, e.clientY, "Miss!", "#ef4444");
+                }
+                updateAccuracyUI();
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            cursorEl.classList.remove('hitting');
+        });
+
+        // Toggle Music
+        function toggleMusic() {
+            sound.isMusicOn = !sound.isMusicOn;
+            btnMusic.textContent = sound.isMusicOn ? '🔊' : '🔇';
+            if (sound.isMusicOn && state.isPlaying) {
+                sound.startBGM();
+            } else {
+                sound.stopBGM();
+            }
+        }
+
+        // SVG Renderers Karakter
+        function getCharacterSVG(type, hp = 1) {
+            if (type === CHARACTER_TYPES.NORMAL) {
+                return `
+                <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+                    <ellipse cx="50" cy="60" rx="35" ry="32" fill="#8D6E63"/>
+                    <circle cx="25" cy="30" r="12" fill="#6D4C41"/>
+                    <circle cx="25" cy="30" r="7" fill="#F8BBD0"/>
+                    <circle cx="75" cy="30" r="12" fill="#6D4C41"/>
+                    <circle cx="75" cy="30" r="7" fill="#F8BBD0"/>
+                    <ellipse cx="50" cy="50" rx="25" ry="20" fill="#D7CCC8"/>
+                    <circle cx="38" cy="45" r="4" fill="#000"/><circle cx="62" cy="45" r="4" fill="#000"/>
+                    <circle cx="40" cy="43" r="1.5" fill="#FFF"/><circle cx="64" cy="43" r="1.5" fill="#FFF"/>
+                    <polygon points="50,52 45,48 55,48" fill="#E91E63"/>
+                    <circle cx="30" cy="52" r="4" fill="#FF8A80" opacity="0.6"/>
+                    <circle cx="70" cy="52" r="4" fill="#FF8A80" opacity="0.6"/>
+                    <rect x="47" y="55" width="6" height="6" rx="1" fill="#FFF" stroke="#CCC" stroke-width="0.5"/>
+                </svg>`;
+            } else if (type === CHARACTER_TYPES.GOLDEN) {
+                return `
+                <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-lg">
+                    <ellipse cx="50" cy="60" rx="35" ry="32" fill="#FFD700"/>
+                    <circle cx="25" cy="30" r="12" fill="#DAA520"/><circle cx="25" cy="30" r="7" fill="#FFF9C4"/>
+                    <circle cx="75" cy="30" r="12" fill="#DAA520"/><circle cx="75" cy="30" r="7" fill="#FFF9C4"/>
+                    <ellipse cx="50" cy="50" rx="25" ry="20" fill="#FFF8E1"/>
+                    <text x="32" y="50" font-size="10">⭐</text><text x="56" y="50" font-size="10">⭐</text>
+                    <polygon points="50,53 46,49 54,49" fill="#FF5722"/>
+                    <polygon points="35,25 40,10 50,20 60,10 65,25" fill="#FF9800" stroke="#FFF" stroke-width="1"/>
+                </svg>`;
+            } else if (type === CHARACTER_TYPES.HELMET) {
+                return `
+                <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+                    <ellipse cx="50" cy="60" rx="35" ry="32" fill="#78909C"/>
+                    <circle cx="25" cy="35" r="11" fill="#455A64"/><circle cx="75" cy="35" r="11" fill="#455A64"/>
+                    <ellipse cx="50" cy="53" rx="23" ry="18" fill="#CFD8DC"/>
+                    <circle cx="38" cy="50" r="4" fill="#000"/><circle cx="62" cy="50" r="4" fill="#000"/>
+                    <polygon points="50,56 46,52 54,52" fill="#D81B60"/>
+                    <path d="M 20 40 Q 50 10 80 40 Z" fill="${hp > 1 ? '#455A64' : '#90A4AE'}" stroke="#1A202C" stroke-width="3"/>
+                    <rect x="18" y="36" width="64" height="8" rx="3" fill="#263238"/>
+                    ${hp === 1 ? '<line x1="40" y1="20" x2="60" y2="35" stroke="#E53E3E" stroke-width="4"/>' : ''}
+                </svg>`;
+            } else if (type === CHARACTER_TYPES.RABBIT) {
+                return `
+                <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+                    <ellipse cx="35" cy="20" rx="7" ry="18" fill="#FFF" stroke="#E0E0E0" stroke-width="2"/>
+                    <ellipse cx="35" cy="20" rx="4" ry="12" fill="#F8BBD0"/>
+                    <ellipse cx="65" cy="20" rx="7" ry="18" fill="#FFF" stroke="#E0E0E0" stroke-width="2"/>
+                    <ellipse cx="65" cy="20" rx="4" ry="12" fill="#F8BBD0"/>
+                    <ellipse cx="50" cy="60" rx="34" ry="30" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="2"/>
+                    <circle cx="36" cy="52" r="5" fill="#212121"/><circle cx="64" cy="52" r="5" fill="#212121"/>
+                    <circle cx="38" cy="50" r="2" fill="#FFF"/><circle cx="66" cy="50" r="2" fill="#FFF"/>
+                    <polygon points="50,58 46,55 54,55" fill="#FF4081"/>
+                    <circle cx="28" cy="58" r="5" fill="#FF80AB" opacity="0.5"/>
+                    <circle cx="72" cy="58" r="5" fill="#FF80AB" opacity="0.5"/>
+                </svg>`;
+            }
+        }
+
+        function getRandomHole() {
+            const holes = document.querySelectorAll('.mole');
+            const idx = Math.floor(Math.random() * holes.length);
+            const hole = holes[idx];
+            if (hole === state.lastHole) return getRandomHole();
+            state.lastHole = hole;
+            return hole;
+        }
+
+        function getRandomCharacterType() {
+            const rand = Math.random();
+            if (rand < 0.55) return CHARACTER_TYPES.NORMAL;
+            if (rand < 0.75) return CHARACTER_TYPES.GOLDEN;
+            if (rand < 0.90) return CHARACTER_TYPES.HELMET;
+            return CHARACTER_TYPES.RABBIT;
+        }
+
+        function popUpMole() {
+            if (!state.isPlaying || state.isPaused) return;
+
+            const moleEl = getRandomHole();
+            const charType = getRandomCharacterType();
+            let hp = charType === CHARACTER_TYPES.HELMET ? 2 : 1;
+
+            moleEl.innerHTML = getCharacterSVG(charType, hp);
+            moleEl.dataset.type = charType;
+            moleEl.dataset.hp = hp;
+            moleEl.dataset.hit = "false";
+
+            moleEl.classList.add('up');
+            sound.playPop();
+
+            const timer = setTimeout(() => {
+                moleEl.classList.remove('up');
+                moleEl.innerHTML = '';
+                if (state.isPlaying) {
+                    state.moleTimeout = setTimeout(popUpMole, state.popInterval);
+                }
+            }, state.upTime);
+
+            moleEl.onclick = (e) => {
+                e.stopPropagation();
+                if (!moleEl.classList.contains('up') || moleEl.dataset.hit === "true") return;
+
+                let currentHp = parseInt(moleEl.dataset.hp);
+                currentHp--;
+                moleEl.dataset.hp = currentHp;
+
+                state.successfulHits++;
+                updateAccuracyUI();
+                createStarEffect(e.clientX, e.clientY);
+
+                if (charType === CHARACTER_TYPES.HELMET && currentHp > 0) {
+                    sound.playHelmetCrack();
+                    moleEl.innerHTML = getCharacterSVG(charType, currentHp);
+                    showFloatingText(e.clientX, e.clientY, "RETUK!", "#f59e0b");
+                    return;
+                }
+
+                moleEl.dataset.hit = "true";
+                clearTimeout(timer);
+
+                let scoreChange = 0;
+                if (charType === CHARACTER_TYPES.NORMAL) {
+                    scoreChange = 10;
+                    sound.playHit();
+                    showFloatingText(e.clientX, e.clientY, "+10", "#10b981");
+                } else if (charType === CHARACTER_TYPES.GOLDEN) {
+                    scoreChange = 25;
+                    sound.playBonus();
+                    showFloatingText(e.clientX, e.clientY, "+25 BONUS!", "#f59e0b");
+                } else if (charType === CHARACTER_TYPES.HELMET) {
+                    scoreChange = 20;
+                    sound.playHit();
+                    showFloatingText(e.clientX, e.clientY, "+20 KEREN!", "#3b82f6");
+                } else if (charType === CHARACTER_TYPES.RABBIT) {
+                    scoreChange = -15;
+                    sound.playPenalty();
+                    showFloatingText(e.clientX, e.clientY, "-15 OOPS!", "#ef4444");
+                }
+
+                state.score = Math.max(0, state.score + scoreChange);
+                scoreDisplay.textContent = state.score;
+
+                moleEl.classList.remove('up');
+                setTimeout(() => {
+                    moleEl.innerHTML = '';
+                    if (state.isPlaying) {
+                        state.moleTimeout = setTimeout(popUpMole, state.popInterval / 2);
+                    }
+                }, 180);
+            };
+        }
+
+        function showFloatingText(x, y, text, color) {
+            const el = document.createElement('div');
+            el.className = 'floating-text text-xl font-black';
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            el.style.color = color;
+            el.textContent = text;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 750);
+        }
+
+        function createStarEffect(x, y) {
+            const star = document.createElement('div');
+            star.className = 'star-effect text-3xl';
+            star.style.left = `${x - 15}px`;
+            star.style.top = `${y - 15}px`;
+            star.textContent = '💥';
+            document.body.appendChild(star);
+            setTimeout(() => star.remove(), 350);
+        }
+
+        function updateAccuracyUI() {
+            if (state.totalClicks === 0) {
+                accuracyDisplay.textContent = '100%';
+                return;
+            }
+            const acc = Math.round((state.successfulHits / state.totalClicks) * 100);
+            accuracyDisplay.textContent = `${acc}%`;
+        }
+
+        function adjustDifficulty() {
+            // Skala level bertahap (1 - 10)
+            state.upTime = Math.max(380, 1250 - (state.level - 1) * 90);
+            state.popInterval = Math.max(350, 1050 - (state.level - 1) * 75);
+            state.targetScore = state.level * 90;
+
+            levelDisplay.textContent = state.level;
+            targetDisplay.textContent = state.targetScore;
+        }
+
+        function startTimer() {
+            state.timeLeft = 30;
+            timeDisplay.textContent = state.timeLeft;
+
+            state.timerInterval = setInterval(() => {
+                if (!state.isPaused) {
+                    state.timeLeft--;
+                    timeDisplay.textContent = state.timeLeft;
+
+                    if (state.timeLeft <= 0) {
+                        endGame();
+                    }
+                }
+            }, 1000);
+        }
+
+        function startGame() {
+            document.getElementById('modal-start').classList.add('hidden');
+            document.getElementById('modal-result').classList.add('hidden');
+            document.getElementById('btn-pause').classList.remove('hidden');
+
+            state.score = 0;
+            state.level = 1;
+            state.totalClicks = 0;
+            state.successfulHits = 0;
+            scoreDisplay.textContent = '0';
+            
+            adjustDifficulty();
+            state.isPlaying = true;
+            state.isPaused = false;
+
+            sound.startBGM();
+            startTimer();
+            popUpMole();
+            mouseStatusEl.textContent = "Bermain...";
+        }
+
+        function nextLevel() {
+            document.getElementById('modal-result').classList.add('hidden');
+            state.level++;
+            adjustDifficulty();
+
+            state.isPlaying = true;
+            state.isPaused = false;
+
+            sound.startBGM();
+            startTimer();
+            popUpMole();
+            mouseStatusEl.textContent = "Bermain...";
+        }
+
+        function restartGame() {
+            startGame();
+        }
+
+        function togglePause() {
+            if (!state.isPlaying) return;
+            state.isPaused = !state.isPaused;
+
+            const modalPause = document.getElementById('modal-pause');
+            if (state.isPaused) {
+                modalPause.classList.remove('hidden');
+                mouseStatusEl.textContent = "Diberhentikan";
+            } else {
+                modalPause.classList.add('hidden');
+                mouseStatusEl.textContent = "Bermain...";
+                popUpMole();
+            }
+        }
+
+        function resetToMenu() {
+            state.isPlaying = false;
+            state.isPaused = false;
+            clearInterval(state.timerInterval);
+            clearTimeout(state.moleTimeout);
+            sound.stopBGM();
+
+            document.getElementById('modal-pause').classList.add('hidden');
+            document.getElementById('modal-result').classList.add('hidden');
+            document.getElementById('modal-start').classList.remove('hidden');
+            document.getElementById('btn-pause').classList.add('hidden');
+            mouseStatusEl.textContent = "Siap Bermain";
+        }
+
+        function endGame() {
+            state.isPlaying = false;
+            clearInterval(state.timerInterval);
+            clearTimeout(state.moleTimeout);
+            sound.stopBGM();
+
+            document.querySelectorAll('.mole').forEach(m => {
+                m.classList.remove('up');
+                m.innerHTML = '';
+            });
+
+            const isPassed = state.score >= state.targetScore;
+            const accuracy = state.totalClicks > 0 ? Math.round((state.successfulHits / state.totalClicks) * 100) : 0;
+
+            const modalResult = document.getElementById('modal-result');
+            const resTitle = document.getElementById('result-title');
+            const resSubtitle = document.getElementById('result-subtitle');
+            const resEmoji = document.getElementById('result-emoji');
+            const btnNext = document.getElementById('btn-next-level');
+            const eduFeedback = document.getElementById('educational-feedback');
+
+            document.getElementById('res-score').textContent = state.score;
+            document.getElementById('res-level').textContent = state.level;
+            document.getElementById('res-accuracy').textContent = `${accuracy}%`;
+            document.getElementById('res-hits').textContent = state.successfulHits;
+
+            if (isPassed) {
+                sound.playLevelUp();
+                resEmoji.textContent = '🎉';
+                resTitle.textContent = 'HEBAT SEKALI!';
+                resTitle.className = "text-2xl font-black text-green-600 mb-1";
+                resSubtitle.textContent = `Kamu berhasil melampaui target ${state.targetScore} poin!`;
+                btnNext.classList.remove('hidden');
+            } else {
+                resEmoji.textContent = '💪';
+                resTitle.textContent = 'AYO COBA LAGI!';
+                resTitle.className = "text-2xl font-black text-amber-600 mb-1";
+                resSubtitle.textContent = `Target poin (${state.targetScore}) belum tercapai. Latih kelincahan tanganmu lagi!`;
+                btnNext.classList.add('hidden');
+            }
+
+            if (accuracy >= 80) {
+                eduFeedback.textContent = "🌟 Luar biasa! Koordinasi mata dan penggunaan mouse kamu sangat akurat!";
+            } else if (accuracy >= 50) {
+                eduFeedback.textContent = "👍 Bagus! Terus latih fokus dan kontrol klik mouse kamu agar semakin tepat!";
+            } else {
+                eduFeedback.textContent = "💡 Tips: Geser mouse dengan tenang dan pastikan kursor pas di atas tikus sebelum diklik!";
+            }
+
+            modalResult.classList.remove('hidden');
+            mouseStatusEl.textContent = "Selesai";
+        }
+
+        window.onload = () => {
+            createHoles();
+        };
+    </script>
+</body>
+</html>
